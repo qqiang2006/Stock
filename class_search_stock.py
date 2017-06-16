@@ -2,16 +2,17 @@
 __author__ = 'lihuixian'
 import json, urllib
 from urllib import urlencode
-from PIL import Image,ImageTk
 import sys
 import io
 import string
+import sqlite3
 reload(sys)
 sys.setdefaultencoding("utf8")
 #股票查询函数
 class Stock:
     def __init__(self):
-        self.back_result = ''
+        self.min_pic=''
+        self.back_all = ''
         self.appkey="1495baff799edb1d926cf3374f53ff1c"
         self.url=url = "http://web.juhe.cn:8080/finance/stock/hs"
     #修改程序调用API的注册参数函数
@@ -19,16 +20,26 @@ class Stock:
         self.appkey=value1
         self.url=value2
     def search_stock(self,ID):
+        #判断输入格式为数字时
         # 自动判定股票代码属于哪个交易所
-        ret =int(ID[0])
-        if ret == 0:
-            stock_num = "%s%s" % ("sz", ID)
+        if ID[0] in  ['6','0','3','9']:
+            ret =int(ID[0])
+            if ret in [0, 3]:
+                stock_num = "%s%s" % ("sz", ID)
+            else:
+                stock_num = "%s%s" % ("sh", ID)
+        #判断输入为中文时
         else:
-            stock_num = "%s%s" % ("sh", ID)
+            #打开股市列表数据库
+            data_base_stock = sqlite3.connect('D:\Data base\stock.db')
+            cu = data_base_stock.cursor()
+            #模糊查询股市ID
+            cu.execute("select stock_ID from stock_list where stock_name like '%"+ID+"%'")
+            stock_num_list = cu.fetchall()
+            stock_num =list(stock_num_list)[0][0]
         params = {
             "gid" : stock_num, #股票编号，上海股市以sh开头，深圳股市以sz开头如：sh601009
             "key" : self.appkey, #APP Key
-
         }
         params = urlencode(params)
         f = urllib.urlopen("%s?%s" % (self.url, params))
@@ -47,7 +58,7 @@ class Stock:
                 price_change=mid_result["increase"]
                 pic=second_result["gopicture"]
                 #分时曲线图
-                min_pic=pic["minurl"]
+                self.min_pic=pic["minurl"]
                 #股票名称
                 back_name= "股票名称为: " +stock_name
                 #股票价格
@@ -62,27 +73,24 @@ class Stock:
                 else:
                     back_change="股票贬值:" + price_change + "元"
                 #股票查询结果
-                back_all=back_name + "\r\n""\r\n" +back_price +"\r\n""\r\n" +back_rate +"\r\n""\r\n" +back_change
+                self                                                                                                    .back_all=back_name + "\r\n""\r\n" +back_price +"\r\n""\r\n" +back_rate +"\r\n""\r\n" +back_change
             else:
-                back_all= "%s:%s" % (res["error_code"],res["reason"])
+                self.back_all= "%s:%s" % (res["error_code"],res["reason"])
         else:
-            back_all="request api error"
-        self.back_result = [back_all , min_pic]
-        return self.back_result
-    #处理股票k线图返回
-    def stock_pic(self,url_pic):
-        image_bytes = urllib.urlopen(url_pic).read()
-        # 返回<_io.BytesIO object at 0x10eafcdd0>
-        data_stream = io.BytesIO(image_bytes)
-        # 返回图片对象<PIL.GifImagePlugin.GifImageFile image mode=P size=545x300 at 0x108DB6710>
-        pil_image = Image.open(data_stream)
-        # 返回 pyimage1
-        tk_image = ImageTk.PhotoImage(pil_image)
-        return tk_image
+            self.back_all="request api error"
+        return self.back_all
 
 if __name__ == '__main__':
     stock_A=Stock()
-    ID=raw_input("请输入股票代码：")
-    result=stock_A.search_stock(ID)
-    print type(stock_A.back_result)
-    print stock_A.back_result[0]
+    # ID=raw_input("请输入股票代码：")
+    result=stock_A.search_stock("600518")
+    print "----------------------------"
+    print(stock_A.back_all)
+    print "----------------------------"
+    # result = stock_A.search_stock("中国建筑")
+    # # print stock_A.min_pic
+    # print(stock_A.back_all)
+    # result = stock_A.search_stock("华天科技")
+    # print "----------------------------"
+    # print(stock_A.back_all)
+    # print "----------------------------"
