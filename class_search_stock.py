@@ -13,7 +13,7 @@ class Stock:
     def __init__(self):
         self.min_pic=''
         self.back_all = ''
-        self.appkey="1495baff799edb1d926cf3374f53ff1c"
+        self.appkey="×××××××××××"#appkey，可以去聚合数据网注册
         self.url=url = "http://web.juhe.cn:8080/finance/stock/hs"
     #修改程序调用API的注册参数函数
     def modify_appkey_url(self,value1,value2):
